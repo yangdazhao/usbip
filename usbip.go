@@ -21,7 +21,8 @@ type UsbCom struct {
 
 type UsbComEx struct {
 	UsbCom
-	Port uint32
+	Port         uint32
+	IsCompulsive uint32
 }
 
 type caInfo struct {
@@ -52,7 +53,7 @@ func cUSBCom(Com1 byte, Com2 byte) UsbCom {
 }
 
 func dUSBCom(Com1 byte, Com2 byte, Port uint32) UsbComEx {
-	return UsbComEx{UsbCom{0x01, 0x10, 10, Com1, Com2}, Port}
+	return UsbComEx{UsbCom{0x01, 0x10, 10, Com1, Com2}, Port, 0}
 }
 
 func (u UsbIP) Reboot() string {
@@ -119,13 +120,37 @@ func (u UsbIP) Info() (map[string]string, error) {
 }
 
 func (u UsbIP) Close(UPort uint8) int {
-	usbComEx := dUSBCom(0x02, 0x10, uint32(UPort))
+	conn, err := net.Dial("tcp", u.IPAddr)
+	if err != nil {
+		log.Println(err)
+		return 100129
+	}
+
+	usbComEx := dUSBCom(0x03, 0x05, uint32(UPort))
 	sendBuf := new(bytes.Buffer)
 	err1 := binary.Write(sendBuf, binary.BigEndian, &usbComEx)
 	if err1 != nil {
+
 	}
-	fmt.Println("Write to server ", DecimalByteSlice2HexString(sendBuf.Bytes()))
-	return 0
+
+	tn, err := conn.Write(sendBuf.Bytes())
+	checkErr(err)
+	fmt.Println("Question to server ", u.IPAddr, tn)
+	fmt.Println(DecimalByteSlice2HexString(sendBuf.Bytes()))
+	///////////////////////////////////////////////////////////////////
+	// Read Command
+	var readBuf [16]byte
+	nn, err := conn.Read(readBuf[0:6])
+	fmt.Println("Reply from server ", nn)
+	fmt.Println(DecimalByteSlice2HexString(readBuf[0:6]))
+	buf := bytes.NewBuffer(readBuf[0:nn])
+	var command UsbCom
+	binary.Read(buf, binary.BigEndian, &command)
+	nn, _ = conn.Read(readBuf[0:10])
+	fmt.Println("Reply from server ", nn)
+	fmt.Println("Reply to server ", DecimalByteSlice2HexString(readBuf[0:command.Length+4]))
+
+	return int(0)
 }
 
 func (u UsbIP) CaInfo() caInfos {
