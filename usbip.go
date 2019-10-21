@@ -214,7 +214,7 @@ func DecimalByteSlice2HexString(DecimalSlice []byte) string {
 
 func checkErr(err error) {
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Fatal error: %s", err.Error())
+		_, _ = fmt.Fprintf(os.Stderr, "Fatal error: %s", err.Error())
 		//os.Exit(1)
 	}
 }

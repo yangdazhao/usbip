@@ -1,4 +1,4 @@
-package usbip_test
+package test_test
 
 import (
 	"fmt"
